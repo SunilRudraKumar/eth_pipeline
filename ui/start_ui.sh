@@ -18,14 +18,18 @@ pip3 install -r requirements.txt
 if [ -z "$ETHERSCAN_API_KEY" ]; then
     export ETHERSCAN_API_KEY=YE887SMD6UV3QVQVY2IJYC1JRC2FTGGHKM
 fi
-export RPC_URL=http://127.0.0.1:8545
+if [ -z "$RPC_URL" ]; then
+    export RPC_URL=http://127.0.0.1:8545
+fi
 
 # Prefer deployed NFT address if available
-if [ -f "/tmp/nft_address.env" ]; then
-    # shellcheck disable=SC1091
-    source /tmp/nft_address.env
-else
-    export NFT_ADDR=0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
+if [ -z "$NFT_ADDR" ]; then
+    if [ -f "/tmp/nft_address.env" ]; then
+        # shellcheck disable=SC1091
+        source /tmp/nft_address.env
+    else
+        export NFT_ADDR=0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
+    fi
 fi
 
 export RECIPIENT=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266

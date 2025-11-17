@@ -3,418 +3,1043 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ethereum Data Pipeline Demo</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <title>Sepolia NFT Pipeline</title>
     <style>
-        .pipeline-step {
-            border-left: 4px solid #007bff;
-            padding-left: 20px;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
             margin-bottom: 30px;
-            transition: all 0.3s ease;
         }
-        .pipeline-step.completed {
-            border-left-color: #28a745;
-            background-color: #f8fff9;
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
-        .pipeline-step.error {
-            border-left-color: #dc3545;
-            background-color: #fff8f8;
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
         }
-        .status-badge {
-            font-size: 0.8em;
-            padding: 4px 8px;
-        }
-        .code-block {
-            background-color: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 4px;
-            padding: 15px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9em;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-        .artifact-card {
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
+
+        .config-panel {
+            background: white;
+            border-radius: 12px;
             padding: 20px;
             margin-bottom: 20px;
-            background: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-        .loading {
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .config-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .config-item label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+
+        .config-item input {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 0.95em;
+            transition: border-color 0.3s;
+        }
+
+        .config-item input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .control-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .start-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 18px 50px;
+            font-size: 1.3em;
+            font-weight: 600;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .start-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .start-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 2.5fr) minmax(0, 1fr);
+            gap: 20px;
+            align-items: start;
+        }
+
+        @media (max-width: 1100px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .pipeline-status {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .live-summary {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .live-summary h2 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .summary-stage {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .summary-updated {
+            font-size: 0.9em;
+            color: #888;
+            margin-bottom: 15px;
+        }
+
+        .summary-metrics {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .metric-chip {
+            background: #f5f5ff;
+            border-radius: 8px;
+            padding: 10px 12px;
+            min-width: 120px;
+        }
+
+        .metric-chip span {
+            display: block;
+            font-size: 0.75em;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .metric-chip strong {
+            display: block;
+            font-size: 1.1em;
+            color: #333;
+        }
+
+        .summary-section {
+            margin-top: 15px;
+        }
+
+        .summary-section h3 {
+            font-size: 1em;
+            color: #555;
+            margin-bottom: 8px;
+        }
+
+        .address-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .address-chip {
+            background: #f0f7ff;
+            color: #2c3e50;
+            border-radius: 20px;
+            padding: 6px 10px;
+            font-size: 0.85em;
+            font-family: monospace;
+        }
+
+        .tx-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .tx-row {
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 10px;
+            background: #fafafa;
+        }
+
+        .tx-hash {
+            font-family: monospace;
+            font-size: 0.85em;
+            color: #333;
+            margin-bottom: 6px;
+        }
+
+        .tx-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85em;
+            color: #555;
+        }
+
+        .muted {
+            color: #999;
+            font-size: 0.9em;
+        }
+
+        .step {
+            margin-bottom: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .step.active {
+            border-color: #667eea;
+            box-shadow: 0 0 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .step.completed {
+            border-color: #4caf50;
+        }
+
+        .step.error {
+            border-color: #f44336;
+        }
+
+        .step-header {
+            padding: 15px 20px;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .step.active .step-header {
+            background: #667eea;
+            color: white;
+        }
+
+        .step.completed .step-header {
+            background: #4caf50;
+            color: white;
+        }
+
+        .step.error .step-header {
+            background: #f44336;
+            color: white;
+        }
+
+        .step-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        .step-icon {
+            font-size: 1.5em;
+        }
+
+        .step-status {
+            font-size: 0.9em;
+            padding: 5px 12px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.2);
+        }
+
+        .step-body {
+            padding: 20px;
+            background: #fafafa;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .step.expanded .step-body {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .log-output {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .log-output:empty::before {
+            content: 'Waiting for logs...';
+            color: #888;
+        }
+
+        .step-details {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #666;
+        }
+
+        .detail-value {
+            color: #333;
+            font-family: monospace;
+            word-break: break-all;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .results-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-top: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             display: none;
         }
-        .loading.show {
+
+        .results-panel.show {
             display: block;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .result-card {
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .result-card h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .result-item {
+            margin-bottom: 10px;
+        }
+
+        .result-label {
+            font-weight: 600;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .result-value {
+            color: #333;
+            font-family: monospace;
+            font-size: 0.9em;
+            word-break: break-all;
+        }
+
+        .link-button {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 8px 16px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 0.9em;
+            transition: background 0.3s;
+        }
+
+        .link-button:hover {
+            background: #5568d3;
+        }
+
+        .image-preview {
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .image-preview img {
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
     </style>
 </head>
 <body>
-    <div class="container-fluid">
-        <!-- Header -->
-        <div class="row bg-primary text-white py-4 mb-4">
-            <div class="col">
-                <h1 class="mb-0">
-                    <i class="fas fa-project-diagram me-3"></i>
-                    Ethereum Data Pipeline Demo
-                </h1>
-                <p class="mb-0 mt-2">Blockchain Data → Processing → IPFS → NFT</p>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Sepolia NFT Pipeline</h1>
+            <p>End-to-End Ethereum Data Pipeline with NFT Minting</p>
+        </div>
+
+        <div class="config-panel">
+            <h2 style="margin-bottom: 15px; color: #333;">Pipeline Configuration</h2>
+            <div class="config-grid">
+                <div class="config-item">
+                    <label>Ethereum Address</label>
+                    <input type="text" id="ethAddress" value="0x742d35Cc6634C0532925a3b844Bc454e4438f44e" placeholder="0x...">
+                </div>
+                <div class="config-item">
+                    <label>Pages to Fetch</label>
+                    <input type="number" id="pages" value="2" min="1" max="10">
+                </div>
+                <div class="config-item">
+                    <label>Network</label>
+                    <input type="text" id="network" value="Sepolia Testnet" readonly>
+                </div>
+                <div class="config-item">
+                    <label>Chain ID</label>
+                    <input type="text" id="chainId" value="{{ chain_id }}" readonly>
+                </div>
+                <div class="config-item">
+                    <label>NFT Contract Address</label>
+                    <input type="text" id="nftAddr" value="{{ nft_addr }}" readonly style="font-family: monospace; font-size: 0.85em;">
+                </div>
             </div>
         </div>
 
-        <div class="row">
-            <!-- Main Pipeline Status -->
-            <div class="col-lg-8">
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h3><i class="fas fa-cogs me-2"></i>Pipeline Status</h3>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-sm btn-outline-primary" onclick="refreshStatus()">
-                                <i class="fas fa-sync-alt"></i> Refresh
-                            </button>
-                            <button class="btn btn-sm btn-success" onclick="triggerRun()">
-                                <i class="fas fa-play"></i> Run Pipeline
-                            </button>
+        <div class="control-panel">
+            <button class="start-button" id="startButton" onclick="startPipeline()">
+                ▶️ Start Complete Pipeline
+            </button>
+            <p style="margin-top: 15px; color: #666; font-size: 0.95em;">
+                This will run all stages: Ingest → Convert → Generate Image → Upload to IPFS → Deploy Contract → Mint NFT
+            </p>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="pipeline-status">
+                <h2 style="margin-bottom: 20px; color: #333;">Pipeline Progress</h2>
+                
+                <!-- Step 1: Ingestion -->
+                <div class="step" id="step-ingest">
+                    <div class="step-header" onclick="toggleStep('ingest')">
+                        <div class="step-title">
+                            <span class="step-icon">📥</span>
+                            <span>Step 1: Data Ingestion</span>
+                        </div>
+                        <span class="step-status" id="status-ingest">Pending</span>
+                    </div>
+                    <div class="step-body">
+                        <div class="log-output" id="log-ingest"></div>
+                        <div class="step-details" id="details-ingest" style="display: none;"></div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Conversion -->
+                <div class="step" id="step-convert">
+                    <div class="step-header" onclick="toggleStep('convert')">
+                        <div class="step-title">
+                            <span class="step-icon">🔄</span>
+                            <span>Step 2: Convert to JSONL</span>
+                        </div>
+                        <span class="step-status" id="status-convert">Pending</span>
+                    </div>
+                    <div class="step-body">
+                        <div class="log-output" id="log-convert"></div>
+                        <div class="step-details" id="details-convert" style="display: none;"></div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Image Generation -->
+                <div class="step" id="step-image">
+                    <div class="step-header" onclick="toggleStep('image')">
+                        <div class="step-title">
+                            <span class="step-icon">🎨</span>
+                            <span>Step 3: Generate Visualization</span>
+                        </div>
+                        <span class="step-status" id="status-image">Pending</span>
+                    </div>
+                    <div class="step-body">
+                        <div class="log-output" id="log-image"></div>
+                        <div class="step-details" id="details-image" style="display: none;"></div>
+                    </div>
+                </div>
+
+                <!-- Step 4: IPFS Upload -->
+                <div class="step" id="step-ipfs">
+                    <div class="step-header" onclick="toggleStep('ipfs')">
+                        <div class="step-title">
+                            <span class="step-icon">📌</span>
+                            <span>Step 4: Upload to IPFS</span>
+                        </div>
+                        <span class="step-status" id="status-ipfs">Pending</span>
+                    </div>
+                    <div class="step-body">
+                        <div class="log-output" id="log-ipfs"></div>
+                        <div class="step-details" id="details-ipfs" style="display: none;"></div>
+                    </div>
+                </div>
+
+                <!-- Step 5: Deploy Contract -->
+                <div class="step" id="step-deploy">
+                    <div class="step-header" onclick="toggleStep('deploy')">
+                        <div class="step-title">
+                            <span class="step-icon">📜</span>
+                            <span>Step 5: Deploy NFT Contract</span>
+                        </div>
+                        <span class="step-status" id="status-deploy">Pending</span>
+                    </div>
+                    <div class="step-body">
+                        <div class="log-output" id="log-deploy"></div>
+                        <div class="step-details" id="details-deploy" style="display: none;"></div>
+                    </div>
+                </div>
+
+                <!-- Step 6: Mint NFT -->
+                <div class="step" id="step-mint">
+                    <div class="step-header" onclick="toggleStep('mint')">
+                        <div class="step-title">
+                            <span class="step-icon">🎁</span>
+                            <span>Step 6: Mint NFT</span>
+                        </div>
+                        <span class="step-status" id="status-mint">Pending</span>
+                    </div>
+                    <div class="step-body">
+                        <div class="log-output" id="log-mint"></div>
+                        <div class="step-details" id="details-mint" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="live-summary" id="liveSummary">
+                <h2>📡 Live Data Snapshot</h2>
+                <p class="summary-stage" id="summaryStage">Stage: idle</p>
+                <p class="summary-updated" id="summaryUpdated">Waiting for data...</p>
+                <div class="summary-metrics" id="summaryMetrics">
+                    <span class="muted">No metrics yet</span>
+                </div>
+                <div class="summary-section">
+                    <h3>Addresses</h3>
+                    <div class="address-list" id="summaryAddresses">
+                        <span class="muted">No addresses yet</span>
+                    </div>
+                </div>
+                <div class="summary-section">
+                    <h3>Recent Transactions</h3>
+                    <div class="tx-list" id="summaryTransactions">
+                        <span class="muted">No transactions yet</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="results-panel" id="resultsPanel">
+            <h2 style="margin-bottom: 20px; color: #333;">🎉 Pipeline Results</h2>
+            <div class="results-grid" id="resultsGrid"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = null;
+        let pollInterval = null;
+        let summaryInterval = null;
+
+        function toggleStep(stepName) {
+            const step = document.getElementById(`step-${stepName}`);
+            step.classList.toggle('expanded');
+        }
+
+        function updateStepStatus(stepName, status, statusText) {
+            const step = document.getElementById(`step-${stepName}`);
+            const statusEl = document.getElementById(`status-${stepName}`);
+            
+            step.classList.remove('active', 'completed', 'error');
+            
+            if (status === 'running') {
+                step.classList.add('active', 'expanded');
+                statusEl.innerHTML = '<span class="spinner"></span> Running...';
+            } else if (status === 'completed') {
+                step.classList.add('completed');
+                statusEl.textContent = '✓ Completed';
+            } else if (status === 'error') {
+                step.classList.add('error', 'expanded');
+                statusEl.textContent = '✗ Error';
+            } else {
+                statusEl.textContent = statusText || 'Pending';
+            }
+        }
+
+        function updateLog(stepName, logText) {
+            const logEl = document.getElementById(`log-${stepName}`);
+            logEl.textContent = logText;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function updateDetails(stepName, details) {
+            const detailsEl = document.getElementById(`details-${stepName}`);
+            if (details && Object.keys(details).length > 0) {
+                let html = '';
+                for (const [key, value] of Object.entries(details)) {
+                    html += `
+                        <div class="detail-row">
+                            <span class="detail-label">${key}:</span>
+                            <span class="detail-value">${value}</span>
+                        </div>
+                    `;
+                }
+                detailsEl.innerHTML = html;
+                detailsEl.style.display = 'block';
+            }
+        }
+
+        async function pollStepStatus(stepName, endpoint) {
+            try {
+                const response = await fetch(endpoint);
+                const data = await response.json();
+                
+                updateLog(stepName, data.logs || '');
+                
+                if (!data.running) {
+                    clearInterval(pollInterval);
+                    
+                    // Check if successful (exit code 0 or specific success indicators)
+                    const isSuccess = data.logs && (
+                        data.logs.includes('✅') || 
+                        data.logs.includes('complete') ||
+                        data.logs.includes('finished with code 0') ||
+                        data.logs.includes('Skipping deployment')
+                    );
+                    
+                    updateStepStatus(stepName, isSuccess ? 'completed' : 'error');
+                    
+                    // Extract details from logs
+                    extractDetails(stepName, data.logs);
+                    
+                    return true; // Step finished
+                }
+                
+                return false; // Still running
+            } catch (error) {
+                console.error('Error polling status:', error);
+                return false;
+            }
+        }
+
+        function extractDetails(stepName, logs) {
+            const details = {};
+            
+            if (stepName === 'ingest') {
+                const txMatch = logs.match(/(\d+)\s+transactions/i);
+                if (txMatch) details['Transactions'] = txMatch[1];
+                
+                const filesMatch = logs.match(/(\d+)\s+parquet/i);
+                if (filesMatch) details['Files Created'] = filesMatch[1];
+            } else if (stepName === 'convert') {
+                const rowsMatch = logs.match(/(\d+)\s+rows/i);
+                if (rowsMatch) details['Rows Converted'] = rowsMatch[1];
+            } else if (stepName === 'image') {
+                const sizeMatch = logs.match(/(\d+K)/);
+                if (sizeMatch) details['Image Size'] = sizeMatch[1];
+            } else if (stepName === 'ipfs') {
+                const cidMatch = logs.match(/CID:\s*(\w+)/);
+                if (cidMatch) details['Image CID'] = cidMatch[1];
+                
+                const metaCidMatch = logs.match(/Metadata CID:\s*(\w+)/);
+                if (metaCidMatch) details['Metadata CID'] = metaCidMatch[1];
+            } else if (stepName === 'deploy') {
+                const addrMatch = logs.match(/0x[a-fA-F0-9]{40}/);
+                if (addrMatch) details['Contract Address'] = addrMatch[0];
+                
+                const txMatch = logs.match(/Transaction:\s*(0x[a-fA-F0-9]{64})/);
+                if (txMatch) details['TX Hash'] = txMatch[1];
+            } else if (stepName === 'mint') {
+                const tokenMatch = logs.match(/Token ID:\s*(\d+)/);
+                if (tokenMatch) details['Token ID'] = tokenMatch[1];
+                
+                const txMatch = logs.match(/0x[a-fA-F0-9]{64}/);
+                if (txMatch) details['TX Hash'] = txMatch[0];
+            }
+            
+            if (Object.keys(details).length > 0) {
+                updateDetails(stepName, details);
+            }
+        }
+
+        async function loadLiveSummary() {
+            try {
+                const response = await fetch('/api/summary');
+                const data = await response.json();
+                renderLiveSummary(data);
+            } catch (error) {
+                console.error('Error loading live summary:', error);
+            }
+        }
+
+        function renderLiveSummary(data) {
+            if (!data) return;
+
+            const stageEl = document.getElementById('summaryStage');
+            const updatedEl = document.getElementById('summaryUpdated');
+            const metricsEl = document.getElementById('summaryMetrics');
+            const addressesEl = document.getElementById('summaryAddresses');
+            const txEl = document.getElementById('summaryTransactions');
+
+            stageEl.textContent = `Stage: ${(data.stage || 'idle').toUpperCase()}`;
+            updatedEl.textContent = data.updated_at ? `Updated ${formatSummaryTime(data.updated_at)}` : 'Waiting for data...';
+
+            const metrics = data.metrics || {};
+            if (Object.keys(metrics).length) {
+                metricsEl.innerHTML = Object.entries(metrics)
+                    .map(([key, value]) => `
+                        <div class="metric-chip">
+                            <span>${key.replace(/_/g, ' ')}</span>
+                            <strong>${value || '—'}</strong>
+                        </div>
+                    `).join('');
+            } else {
+                metricsEl.innerHTML = '<span class="muted">No metrics yet</span>';
+            }
+
+            const addresses = data.addresses || [];
+            if (addresses.length) {
+                addressesEl.innerHTML = addresses
+                    .map(addr => `<span class="address-chip">${addr}</span>`)
+                    .join('');
+            } else {
+                addressesEl.innerHTML = '<span class="muted">No addresses yet</span>';
+            }
+
+            const transactions = data.transactions || [];
+            if (transactions.length) {
+                txEl.innerHTML = transactions.map(tx => `
+                    <div class="tx-row">
+                        <div class="tx-hash">${tx.hash || 'Pending hash'}</div>
+                        <div class="tx-meta">
+                            <span>${(tx.from || '—').slice(0, 12)} → ${(tx.to || '—').slice(0, 12)}</span>
+                            <span>${tx.value_eth || '0'} ETH</span>
                         </div>
                     </div>
-                    <div class="card-body">
-                        <div class="loading" id="statusLoading">
-                            <div class="text-center">
-                                <div class="spinner-border text-primary" role="status"></div>
-                                <p>Loading pipeline status...</p>
+                `).join('');
+            } else {
+                txEl.innerHTML = '<span class="muted">No transactions yet</span>';
+            }
+        }
+
+        function formatSummaryTime(isoString) {
+            try {
+                return new Date(isoString).toLocaleTimeString();
+            } catch (error) {
+                return isoString || '';
+            }
+        }
+
+        async function runStep(stepName, endpoint, payload = {}) {
+            updateStepStatus(stepName, 'running');
+            
+            try {
+                // Start the step
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                // Check if step was skipped (e.g., deployment with existing contract)
+                if (result.status === 'skipped') {
+                    const statusEndpoint = endpoint + '/status';
+                    const statusData = await fetch(statusEndpoint).then(r => r.json());
+                    updateLog(stepName, statusData.logs || 'Step skipped');
+                    updateStepStatus(stepName, 'completed');
+                    setTimeout(() => runNextStep(stepName), 500);
+                    return;
+                }
+                
+                // Poll for status
+                const statusEndpoint = endpoint + '/status';
+                pollInterval = setInterval(async () => {
+                    const finished = await pollStepStatus(stepName, statusEndpoint);
+                    if (finished) {
+                        clearInterval(pollInterval);
+                        // Wait a bit before next step
+                        setTimeout(() => runNextStep(stepName), 1000);
+                    }
+                }, 1000);
+                
+            } catch (error) {
+                updateStepStatus(stepName, 'error');
+                updateLog(stepName, `Error: ${error.message}`);
+                document.getElementById('startButton').disabled = false;
+            }
+        }
+
+        function runNextStep(currentStep) {
+            const steps = ['ingest', 'convert', 'image', 'ipfs', 'deploy', 'mint'];
+            const currentIndex = steps.indexOf(currentStep);
+            
+            if (currentIndex < steps.length - 1) {
+                const nextStep = steps[currentIndex + 1];
+                executeStep(nextStep);
+            } else {
+                // Pipeline complete
+                document.getElementById('startButton').disabled = false;
+                document.getElementById('startButton').textContent = '✓ Pipeline Complete - Run Again';
+                showResults();
+            }
+        }
+
+        function executeStep(stepName) {
+            const address = document.getElementById('ethAddress').value;
+            const pages = document.getElementById('pages').value;
+            
+            switch(stepName) {
+                case 'ingest':
+                    runStep('ingest', '/api/run/ingest', {address, pages});
+                    break;
+                case 'convert':
+                    runStep('convert', '/api/run/convert');
+                    break;
+                case 'image':
+                    runStep('image', '/api/run/image');
+                    break;
+                case 'ipfs':
+                    runStep('ipfs', '/api/run/ipfs');
+                    break;
+                case 'deploy':
+                    runStep('deploy', '/api/run/deploy');
+                    break;
+                case 'mint':
+                    runStep('mint', '/api/run/mint');
+                    break;
+            }
+        }
+
+        async function startPipeline() {
+            const button = document.getElementById('startButton');
+            button.disabled = true;
+            button.textContent = '⏳ Running Pipeline...';
+            loadLiveSummary();
+            
+            // Reset all steps
+            const steps = ['ingest', 'convert', 'image', 'ipfs', 'deploy', 'mint'];
+            steps.forEach(step => {
+                updateStepStatus(step, 'pending', 'Pending');
+                updateLog(step, '');
+                document.getElementById(`details-${step}`).style.display = 'none';
+            });
+            
+            document.getElementById('resultsPanel').classList.remove('show');
+            
+            // Start first step
+            executeStep('ingest');
+        }
+
+        async function showResults() {
+            try {
+                const response = await fetch('/api/results');
+                const data = await response.json();
+                
+                let html = '';
+                
+                // Contract Info
+                if (data.contract) {
+                    html += `
+                        <div class="result-card">
+                            <h3>📜 NFT Contract</h3>
+                            <div class="result-item">
+                                <div class="result-label">Address</div>
+                                <div class="result-value">${data.contract.address || 'N/A'}</div>
+                            </div>
+                            <div class="result-item">
+                                <div class="result-label">Name</div>
+                                <div class="result-value">${data.contract.name || 'N/A'}</div>
+                            </div>
+                            ${data.contract.etherscan_url ? `
+                                <a href="${data.contract.etherscan_url}" target="_blank" class="link-button">
+                                    View on Etherscan →
+                                </a>
+                            ` : ''}
+                        </div>
+                    `;
+                }
+                
+                // NFT Info
+                if (data.nft) {
+                    html += `
+                        <div class="result-card">
+                            <h3>🎁 Minted NFT</h3>
+                            <div class="result-item">
+                                <div class="result-label">Token ID</div>
+                                <div class="result-value">${data.nft.token_id || 'N/A'}</div>
+                            </div>
+                            <div class="result-item">
+                                <div class="result-label">Owner</div>
+                                <div class="result-value">${data.nft.owner || 'N/A'}</div>
+                            </div>
+                            <div class="result-item">
+                                <div class="result-label">Token URI</div>
+                                <div class="result-value">${data.nft.token_uri || 'N/A'}</div>
                             </div>
                         </div>
-                        <div id="pipelineStatus"></div>
-                    </div>
-                </div>
-
-                <!-- Pipeline Steps -->
-                <div class="card">
-                    <div class="card-header">
-                        <h3><i class="fas fa-list-ol me-2"></i>Pipeline Steps</h3>
-                    </div>
-                    <div class="card-body">
-                        <div id="pipelineSteps"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sidebar with Artifacts -->
-            <div class="col-lg-4">
-                <!-- IPFS Information -->
-                <div class="artifact-card">
-                    <h4><i class="fas fa-cloud me-2"></i>IPFS Data</h4>
-                    <div class="loading" id="ipfsLoading">
-                        <div class="spinner-border spinner-border-sm text-primary"></div>
-                    </div>
-                    <div id="ipfsInfo"></div>
-                </div>
-
-                <!-- Blockchain Information -->
-                <div class="artifact-card">
-                    <h4><i class="fas fa-link me-2"></i>Blockchain</h4>
-                    <div class="loading" id="blockchainLoading">
-                        <div class="spinner-border spinner-border-sm text-primary"></div>
-                    </div>
-                    <div id="blockchainInfo"></div>
-                </div>
-
-                <!-- NFT Information -->
-                <div class="artifact-card">
-                    <h4><i class="fas fa-certificate me-2"></i>NFT</h4>
-                    <div class="loading" id="nftLoading">
-                        <div class="spinner-border spinner-border-sm text-primary"></div>
-                    </div>
-                    <div id="nftInfo"></div>
-                </div>
-
-                <!-- Transaction Data -->
-                <div class="artifact-card">
-                    <h4><i class="fas fa-exchange-alt me-2"></i>Sample Transactions</h4>
-                    <div class="loading" id="transactionsLoading">
-                        <div class="spinner-border spinner-border-sm text-primary"></div>
-                    </div>
-                    <div id="transactionsInfo"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Global state
-        let pipelineData = {};
-
-        // Initialize the dashboard
-        document.addEventListener('DOMContentLoaded', function() {
-            loadAllData();
-            // Auto-refresh every 30 seconds
-            setInterval(loadAllData, 30000);
-        });
-
-        async function loadAllData() {
-            await Promise.all([
-                loadPipelineStatus(),
-                loadIPFSInfo(),
-                loadBlockchainInfo(),
-                loadNFTInfo(),
-                loadTransactionsInfo()
-            ]);
-        }
-
-        async function loadPipelineStatus() {
-            showLoading('statusLoading');
-            try {
-                const response = await fetch('/api/status');
-                const data = await response.json();
-                pipelineData = data;
-                renderPipelineStatus(data);
-                renderPipelineSteps(data);
-            } catch (error) {
-                console.error('Error loading pipeline status:', error);
-                document.getElementById('pipelineStatus').innerHTML = 
-                    '<div class="alert alert-danger">Error loading pipeline status</div>';
-            } finally {
-                hideLoading('statusLoading');
-            }
-        }
-
-        async function loadIPFSInfo() {
-            showLoading('ipfsLoading');
-            try {
-                const response = await fetch('/api/ipfs');
-                const data = await response.json();
-                renderIPFSInfo(data);
-            } catch (error) {
-                console.error('Error loading IPFS info:', error);
-            } finally {
-                hideLoading('ipfsLoading');
-            }
-        }
-
-        async function loadBlockchainInfo() {
-            showLoading('blockchainLoading');
-            try {
-                const response = await fetch('/api/blockchain');
-                const data = await response.json();
-                renderBlockchainInfo(data);
-            } catch (error) {
-                console.error('Error loading blockchain info:', error);
-            } finally {
-                hideLoading('blockchainLoading');
-            }
-        }
-
-        async function loadNFTInfo() {
-            showLoading('nftLoading');
-            try {
-                const response = await fetch('/api/nft');
-                const data = await response.json();
-                renderNFTInfo(data);
-            } catch (error) {
-                console.error('Error loading NFT info:', error);
-            } finally {
-                hideLoading('nftLoading');
-            }
-        }
-
-        async function loadTransactionsInfo() {
-            showLoading('transactionsLoading');
-            try {
-                const response = await fetch('/api/transactions');
-                const data = await response.json();
-                renderTransactionsInfo(data);
-            } catch (error) {
-                console.error('Error loading transactions info:', error);
-            } finally {
-                hideLoading('transactionsLoading');
-            }
-        }
-
-        function renderPipelineStatus(data) {
-            const statusDiv = document.getElementById('pipelineStatus');
-            const statusClass = data.pipeline_status === 'completed' ? 'success' : 'warning';
-            statusDiv.innerHTML = `
-                <div class="alert alert-${statusClass}">
-                    <i class="fas fa-${data.pipeline_status === 'completed' ? 'check-circle' : 'exclamation-triangle'}"></i>
-                    <strong>Pipeline Status: ${data.pipeline_status.toUpperCase()}</strong>
-                    <br><small>Last updated: ${new Date(data.timestamp).toLocaleString()}</small>
-                </div>
-            `;
-        }
-
-        function renderPipelineSteps(data) {
-            const stepsDiv = document.getElementById('pipelineSteps');
-            const steps = [
-                { key: 'etherscan_ingestion', name: 'Etherscan Data Ingestion', icon: 'fas fa-download' },
-                { key: 'spark_processing', name: 'PySpark Processing', icon: 'fas fa-cogs' },
-                { key: 'ipfs_pinning', name: 'IPFS Pinning', icon: 'fas fa-cloud-upload-alt' },
-                { key: 'nft_deployment', name: 'NFT Contract Deployment', icon: 'fas fa-rocket' },
-                { key: 'nft_minting', name: 'NFT Minting', icon: 'fas fa-certificate' }
-            ];
-
-            stepsDiv.innerHTML = steps.map(step => {
-                const stepData = data.steps[step.key];
-                const statusClass = stepData.status === 'completed' ? 'completed' : 'error';
-                return `
-                    <div class="pipeline-step ${statusClass}">
-                        <h5>
-                            <i class="${step.icon} me-2"></i>
-                            ${step.name}
-                            <span class="badge bg-${stepData.status === 'completed' ? 'success' : 'danger'} status-badge">
-                                ${stepData.status.toUpperCase()}
-                            </span>
-                        </h5>
-                        <p class="mb-0">${stepData.message}</p>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function renderIPFSInfo(data) {
-            document.getElementById('ipfsInfo').innerHTML = `
-                <p><strong>CID:</strong> <code>${data.cid}</code></p>
-                <p><strong>Gateway URL:</strong> 
-                    <a href="${data.gateway_url}" target="_blank" class="btn btn-sm btn-outline-primary">
-                        <i class="fas fa-external-link-alt"></i> View
-                    </a>
-                </p>
-                <p><strong>IPFS URI:</strong> <code>${data.ipfs_uri}</code></p>
-                <p><strong>Status:</strong> 
-                    <span class="badge bg-${data.accessible ? 'success' : 'danger'}">
-                        ${data.accessible ? 'Accessible' : 'Not Accessible'}
-                    </span>
-                </p>
-                ${data.sample_data ? `
-                    <div class="mt-3">
-                        <h6>Sample Data:</h6>
-                        <div class="code-block">${data.sample_data}</div>
-                    </div>
-                ` : ''}
-            `;
-        }
-
-        function renderBlockchainInfo(data) {
-            document.getElementById('blockchainInfo').innerHTML = `
-                <p><strong>RPC URL:</strong> <code>${data.rpc_url}</code></p>
-                <p><strong>Block Number:</strong> ${data.block_number}</p>
-                <p><strong>NFT Contract:</strong> <code>${data.nft_contract}</code></p>
-                <p><strong>Recipient:</strong> <code>${data.recipient}</code></p>
-                <p><strong>Contract Status:</strong> 
-                    <span class="badge bg-${data.contract_deployed ? 'success' : 'danger'}">
-                        ${data.contract_deployed ? 'Deployed' : 'Not Deployed'}
-                    </span>
-                </p>
-                ${data.contract_name ? `<p><strong>Contract Name:</strong> ${data.contract_name}</p>` : ''}
-            `;
-        }
-
-        function renderNFTInfo(data) {
-            document.getElementById('nftInfo').innerHTML = `
-                <p><strong>Contract:</strong> <code>${data.contract_address}</code></p>
-                <p><strong>Token ID:</strong> ${data.token_id}</p>
-                <p><strong>Owner:</strong> <code>${data.owner}</code></p>
-                <p><strong>Token URI:</strong> <code>${data.token_uri}</code></p>
-                <p><strong>Mint TX:</strong> 
-                    <code title="${data.mint_transaction}">${data.mint_transaction.substring(0, 20)}...</code>
-                </p>
-                <p><strong>Metadata:</strong> 
-                    <span class="badge bg-${data.metadata_accessible ? 'success' : 'warning'}">
-                        ${data.metadata_accessible ? 'Accessible' : 'Unknown'}
-                    </span>
-                </p>
-            `;
-        }
-
-        function renderTransactionsInfo(data) {
-            if (data.sample_transactions) {
-                document.getElementById('transactionsInfo').innerHTML = `
-                    <p><strong>Total Transactions:</strong> ${data.total_transactions}</p>
-                    <h6>Sample Transactions:</h6>
-                    ${data.sample_transactions.map(tx => `
-                        <div class="border rounded p-2 mb-2">
-                            <p class="mb-1"><strong>Hash:</strong> <code>${tx.hash.substring(0, 20)}...</code></p>
-                            <p class="mb-1"><strong>Value:</strong> ${tx.value}</p>
-                            <p class="mb-1"><strong>Block:</strong> ${tx.block}</p>
-                            <p class="mb-0"><strong>Time:</strong> ${new Date(tx.timestamp).toLocaleString()}</p>
+                    `;
+                }
+                
+                // IPFS Info
+                if (data.ipfs) {
+                    html += `
+                        <div class="result-card">
+                            <h3>📌 IPFS Data</h3>
+                            <div class="result-item">
+                                <div class="result-label">Image CID</div>
+                                <div class="result-value">${data.ipfs.image_cid || 'N/A'}</div>
+                            </div>
+                            <div class="result-item">
+                                <div class="result-label">Metadata CID</div>
+                                <div class="result-value">${data.ipfs.metadata_cid || 'N/A'}</div>
+                            </div>
+                            ${data.ipfs.gateway_url ? `
+                                <a href="${data.ipfs.gateway_url}" target="_blank" class="link-button">
+                                    View on IPFS →
+                                </a>
+                            ` : ''}
                         </div>
-                    `).join('')}
-                `;
-            } else {
-                document.getElementById('transactionsInfo').innerHTML = 
-                    '<div class="alert alert-warning">No transaction data available</div>';
-            }
-        }
-
-        function showLoading(elementId) {
-            document.getElementById(elementId).classList.add('show');
-        }
-
-        function hideLoading(elementId) {
-            document.getElementById(elementId).classList.remove('show');
-        }
-
-        function refreshStatus() {
-            loadAllData();
-        }
-
-        async function triggerRun() {
-            try {
-                const res = await fetch('/api/run', { method: 'POST' });
-                if (res.status === 202) {
-                    showRunLogs();
-                    // Start polling status/logs
-                    pollRunLogs();
-                } else {
-                    const data = await res.json();
-                    alert(data.message || 'Unable to start pipeline');
+                    `;
                 }
-            } catch (e) {
-                alert('Failed to start pipeline');
-            }
-        }
-
-        async function pollRunLogs() {
-            try {
-                const res = await fetch('/api/run/status');
-                const data = await res.json();
-                document.getElementById('runLogsBody').textContent = data.logs || '';
-                if (data.running) {
-                    setTimeout(pollRunLogs, 2000);
-                } else {
-                    // When complete, refresh dashboard
-                    loadAllData();
+                
+                // Data Stats
+                if (data.data) {
+                    html += `
+                        <div class="result-card">
+                            <h3>📊 Data Statistics</h3>
+                            <div class="result-item">
+                                <div class="result-label">Transactions</div>
+                                <div class="result-value">${data.data.transaction_count || 'N/A'}</div>
+                            </div>
+                            <div class="result-item">
+                                <div class="result-label">Address</div>
+                                <div class="result-value">${data.data.address || 'N/A'}</div>
+                            </div>
+                            ${data.data.image_path ? `
+                                <div class="image-preview">
+                                    <img src="/api/image" alt="Transaction Chart">
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
                 }
-            } catch (e) {
-                // try again shortly
-                setTimeout(pollRunLogs, 3000);
+                
+                document.getElementById('resultsGrid').innerHTML = html;
+                document.getElementById('resultsPanel').classList.add('show');
+                
+            } catch (error) {
+                console.error('Error fetching results:', error);
             }
         }
 
-        function showRunLogs() {
-            const modal = new bootstrap.Modal(document.getElementById('runLogsModal'));
-            modal.show();
-        }
+        // Load chain ID on page load
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch('/api/config');
+                const config = await response.json();
+                document.getElementById('chainId').value = config.chain_id || '11155111';
+                document.getElementById('network').value = config.network || 'Sepolia Testnet';
+            } catch (error) {
+                console.error('Error loading config:', error);
+            }
+
+            loadLiveSummary();
+            summaryInterval = setInterval(loadLiveSummary, 5000);
+        });
     </script>
-
-    <!-- Run Logs Modal -->
-    <div class="modal fade" id="runLogsModal" tabindex="-1" aria-hidden="true">
-      <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title"><i class="fas fa-terminal me-2"></i>Pipeline Run Logs</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <pre class="code-block" id="runLogsBody"></pre>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-          </div>
-        </div>
-      </div>
-    </div>
 </body>
 </html>

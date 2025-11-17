@@ -53,7 +53,7 @@ def main():
     p.add_argument("--address", required=True, help="EOA or contract address")
     p.add_argument("--action", default="txlist",
                    choices=["txlist","txlistinternal","tokentx","tokennfttx"])
-    p.add_argument("--chain-id", type=int, default=1, help="Etherscan chain id (1=mainnet)")
+    p.add_argument("--chain-id", type=int, default=11155111, help="Etherscan chain id (11155111=sepolia, 1=mainnet)")
     p.add_argument("--start-block", type=int, default=0)
     p.add_argument("--end-block", type=int, default=99999999)
     p.add_argument("--page-size", type=int, default=100)

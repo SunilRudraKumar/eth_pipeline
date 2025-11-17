@@ -9,7 +9,7 @@ ADDRESS=${1:-"0x742d35Cc6634C0532925a3b844Bc454e4438f44e"}
 MAX_PAGES=${2:-5}
 OUTPUT_DIR="/tmp/eth_tx"
 # Chain ID (1=mainnet, 11155111=sepolia)
-CHAIN_ID=${CHAIN_ID:-1}
+CHAIN_ID=${CHAIN_ID:-11155111}
 
 echo "🚀 Starting Etherscan ingestion..."
 echo "Address: $ADDRESS"

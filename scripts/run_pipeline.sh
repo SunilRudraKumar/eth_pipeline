@@ -43,7 +43,7 @@ echo "📋 Summary:"
 if [ -f "/tmp/ipfs_cid.env" ]; then
     source /tmp/ipfs_cid.env
     echo "  IPFS CID: $CID"
-    echo "  Gateway URL: http://127.0.0.1:8080/ipfs/$CID"
+    echo "  Gateway URL: http://127.0.0.1:8081/ipfs/$CID"
 fi
 
 if [ -f "/tmp/mint_tx.env" ]; then
