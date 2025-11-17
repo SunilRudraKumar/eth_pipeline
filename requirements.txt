@@ -1,7 +1,7 @@
-# Core dependencies for Ethereum data pipeline
+Flask==2.3.3
+Flask-CORS==4.0.0
+gunicorn==21.2.0
 requests==2.31.0
 pyspark==3.5.0
-
-# Image generation dependencies
-pandas==2.1.1
-matplotlib==3.8.0
+pandas==2.2.3
+matplotlib==3.10.0
