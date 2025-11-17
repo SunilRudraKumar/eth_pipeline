@@ -9,3 +9,4 @@ __pycache__/
 /data/
 ui/__pycache__/
 
+.jdk/
