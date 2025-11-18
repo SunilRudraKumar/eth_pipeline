@@ -1,17 +1,25 @@
 #!/usr/bin/env python3
 """
-PySpark app that paginates Etherscan Accounts endpoints into a Spark DataFrame.
+Lightweight ingestion utility that fetches Etherscan account activity and writes it
+using pandas/pyarrow. Spark is intentionally avoided so the pipeline can run in
+small environments (Render free tier, etc.).
 
 Usage:
   export ETHERSCAN_API_KEY=your_key
   python3 etherscan_ingest.py \
     --address 0x742d35Cc6634C0532925a3b844Bc454e4438f44e \
     --action txlist --start-block 0 --end-block 99999999 \
-    --page-size 100 --max-pages 50 --rps 5 --output parquet:/tmp/eth_tx
+    --page-size 100 --max-pages 50 --rps 5 --output /tmp/eth_tx
 """
-import os, time, argparse, requests
-from typing import List, Dict
-from pyspark.sql import SparkSession, functions as F
+import argparse
+import json
+import os
+import time
+from pathlib import Path
+from typing import Dict, List
+
+import pandas as pd
+import requests
 
 ETHERSCAN_BASE = "https://api.etherscan.io/v2/api"
 
@@ -67,8 +75,6 @@ def main():
     if not apikey:
         raise SystemExit("Set ETHERSCAN_API_KEY in your environment.")
 
-    spark = SparkSession.builder.appName("etherscan-ingest").getOrCreate()
-
     rows = paginate(
         action=args.action, address=args.address, start_block=args.start_block,
         end_block=args.end_block, page_size=args.page_size, max_pages=args.max_pages,
@@ -95,28 +101,38 @@ def main():
         }]
         print("Warning: Etherscan returned no data; proceeding with a placeholder row for demo continuity.")
 
-    df = spark.createDataFrame(rows)
-    df = (df
-          .withColumn("blockNumber", F.col("blockNumber").cast("long"))
-          .withColumn("timeStamp", F.col("timeStamp").cast("long"))
-          .withColumn("ts", F.to_timestamp(F.col("timeStamp")))
-          .withColumn("valueWei", F.col("value").cast("decimal(38,0)"))
-          .withColumn("valueEth", (F.col("valueWei") / F.lit(1e18)).cast("double"))
-          )
+    df = pd.DataFrame(rows)
+    if df.empty:
+        print("⚠️  Warning: DataFrame is empty even after placeholder handling.")
 
-    df.cache()
-    print(f"Fetched {df.count()} rows from Etherscan ({args.action}).")
-    df.orderBy(F.desc("timeStamp")).show(10, truncate=False)
+    # Ensure expected columns exist
+    for col in ("blockNumber", "timeStamp", "value"):
+        if col not in df.columns:
+            df[col] = 0
+
+    df["blockNumber"] = pd.to_numeric(df["blockNumber"], errors="coerce").fillna(0).astype("int64")
+    df["timeStamp"] = pd.to_numeric(df["timeStamp"], errors="coerce").fillna(0).astype("int64")
+    df["ts"] = pd.to_datetime(df["timeStamp"], unit="s", errors="coerce")
+
+    df["valueWei"] = pd.to_numeric(df["value"], errors="coerce").fillna(0)
+    df["valueEth"] = (df["valueWei"] / 1e18).astype(float)
+
+    print(f"Fetched {len(df)} rows from Etherscan ({args.action}).")
+    print(df.sort_values("timeStamp", ascending=False).head(10).to_string(index=False))
 
     if args.output:
-        fmt, path = args.output.split(":", 1) if ":" in args.output else ("parquet", args.output)
-        if fmt == "delta":
-            df.write.mode("overwrite").format("delta").save(path)
+        output_path = Path(args.output)
+        if output_path.suffix:
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            file_path = output_path
         else:
-            df.write.mode("overwrite").format(fmt).save(path)
-        print(f"Wrote {fmt} → {path}")
+            output_path.mkdir(parents=True, exist_ok=True)
+            file_path = output_path / "part-00000.jsonl"
 
-    spark.stop()
+        with file_path.open("w", encoding="utf-8") as fh:
+            for record in df.to_dict(orient="records"):
+                fh.write(json.dumps(record, default=str) + "\n")
+        print(f"Wrote jsonl → {file_path}")
 
 if __name__ == "__main__":
     main()

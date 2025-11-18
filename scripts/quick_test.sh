@@ -4,12 +4,14 @@
 
 set -e
 
+PY_BIN=${PYTHON_BIN:-python3}
+
 echo "🧪 Quick Pipeline Test"
 echo "====================="
 
 # Test 1: Python dependencies
 echo "1️⃣ Testing Python dependencies..."
-python3 -c "import pyspark, requests; print('✅ Python deps OK')"
+"$PY_BIN" -c "import pandas, requests; print('✅ Python deps OK')"
 
 # Test 2: IPFS connectivity
 echo "2️⃣ Testing IPFS connectivity..."

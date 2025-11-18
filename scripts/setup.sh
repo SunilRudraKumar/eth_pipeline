@@ -4,6 +4,8 @@
 
 set -e
 
+PY_BIN=${PYTHON_BIN:-python3}
+
 echo "🚀 Setting up Pipeline Demo..."
 
 # Check if we're in the right directory
@@ -16,21 +18,9 @@ fi
 echo "📝 Making scripts executable..."
 chmod +x scripts/*.sh
 
-# Check Python dependencies
-echo "🐍 Checking Python dependencies..."
-if ! python3 -c "import pyspark" 2>/dev/null; then
-    echo "📦 Installing PySpark..."
-    python3 -m pip install --user pyspark requests
-else
-    echo "✅ PySpark already installed"
-fi
-
-if ! python3 -c "import requests" 2>/dev/null; then
-    echo "📦 Installing requests..."
-    python3 -m pip install --user requests
-else
-    echo "✅ requests already installed"
-fi
+# Install Python dependencies
+echo "🐍 Installing Python dependencies from requirements.txt..."
+"$PY_BIN" -m pip install --user -r requirements.txt
 
 # Check Docker and IPFS
 echo "🐳 Checking Docker..."

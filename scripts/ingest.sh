@@ -4,6 +4,8 @@
 
 set -e
 
+PY_BIN=${PYTHON_BIN:-python3}
+
 # Default values
 ADDRESS=${1:-"0x742d35Cc6634C0532925a3b844Bc454e4438f44e"}
 MAX_PAGES=${2:-5}
@@ -16,6 +18,7 @@ echo "Address: $ADDRESS"
 echo "Max pages: $MAX_PAGES"
 echo "Chain ID: $CHAIN_ID"
 echo "Output: $OUTPUT_DIR"
+echo "Python: $PY_BIN"
 
 # Check if ETHERSCAN_API_KEY is set
 if [ -z "$ETHERSCAN_API_KEY" ]; then
@@ -24,15 +27,15 @@ if [ -z "$ETHERSCAN_API_KEY" ]; then
     exit 1
 fi
 
-# Run the PySpark ingestion script
-python3 etherscan_ingest.py \
+# Run the ingestion script (pandas + requests)
+"$PY_BIN" etherscan_ingest.py \
   --address "$ADDRESS" \
   --action txlist \
   --page-size 100 \
   --max-pages "$MAX_PAGES" \
   --rps 5 \
   --chain-id "$CHAIN_ID" \
-  --output "parquet:$OUTPUT_DIR"
+  --output "$OUTPUT_DIR"
 
 echo "✅ Ingestion complete! Data saved to $OUTPUT_DIR"
 
